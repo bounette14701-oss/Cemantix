@@ -7,7 +7,7 @@ MOT_MYSTERE_FIXE = "AMOUREUX"
 
 def calculer_similarite(mot_mystere, proposition):
     """
-    Calcule un score de similarité entre 0 et 1000.
+    Calcule un score de similarité entre 0 et 1000 basé sur la similarité textuelle.
     """
     mot_mystere = mot_mystere.lower().strip()
     proposition = proposition.lower().strip()
@@ -33,13 +33,13 @@ def calculer_similarite(mot_mystere, proposition):
 # --- Fonction de rappel pour la soumission ---
 def gerer_proposition_soumise(proposition_utilisateur):
     """
-    Traite la proposition et réinitialise le champ d'entrée.
-    Cette fonction est appelée par le bouton de soumission du formulaire.
+    Traite la proposition, calcule le score et réinitialise le champ d'entrée.
     """
     if not proposition_utilisateur:
         st.session_state.message_erreur = "Veuillez entrer un mot valide."
         return
 
+    st.session_state.message_erreur = ""
     mot_mystere = MOT_MYSTERE_FIXE
     
     if proposition_utilisateur == mot_mystere:
@@ -52,15 +52,41 @@ def gerer_proposition_soumise(proposition_utilisateur):
     st.session_state.dernier_score = (proposition_utilisateur, score)
     
     # Réinitialisation SÛRE du champ d'entrée via session_state
-    # ATTENTION: On ne réinitialise le champ "input_prop" QUE s'il est vide/non trouvé
     if not st.session_state.trouve:
         st.session_state.input_prop = ""
 
-
+# --- Fonctions d'affichage de la jauge ---
+def afficher_jauge_coloree(score):
+    """
+    Affiche une barre de progression colorée (rouge vers vert) et stylisée.
+    """
+    couleur = "red"
+    if score >= 900:
+        couleur = "green"
+    elif score >= 700:
+        couleur = "lightgreen"
+    elif score >= 500:
+        couleur = "yellow"
+    elif score >= 250:
+        couleur = "orange"
+        
+    # NOUVEL AFFICHAGE : Utilisation d'un markdown pour le pourcentage et la jauge
+    score_pourcentage = int(score / 1000 * 100) # Conversion en pourcentage entier
+    
+    st.markdown(f"**{score_pourcentage}%** de similarité", unsafe_allow_html=True)
+    
+    style_html = f"""
+    <div style="background-color: #eee; border-radius: 5px; height: 30px; width: 100%; margin-bottom: 20px;">
+        <div style="background-color: {couleur}; border-radius: 5px; height: 100%; width: {score_pourcentage}%;">
+        </div>
+    </div>
+    """
+    st.markdown(style_html, unsafe_allow_html=True)
+    
 # --- Initialisation de l'application Streamlit ---
 
-st.title("💖 Cémantix Personnalisé : Thème Amour")
-st.markdown("Trouvez le mot mystère en vous basant sur la similarité textuelle avec **'AMOUREUX'**.")
+st.title("🏹 La Chasse au Mot Secret : AMOUREUX")
+st.markdown("Trouvez le mot mystère en proposant des mots qui s'en approchent sémantiquement.")
 
 # Initialisation des variables de session
 if 'historique_propositions' not in st.session_state:
@@ -72,16 +98,19 @@ if 'dernier_score' not in st.session_state:
 if 'message_erreur' not in st.session_state:
     st.session_state.message_erreur = ""
 
-# --- Affichage du statut du jeu ---
+# --- Affichage du statut du jeu et de la Jauge ---
 st.header("État du Jeu")
+
 if not st.session_state.trouve:
     st.info(f"Le mot mystère est prêt. Tentatives : {len(st.session_state.historique_propositions)}")
     
-    # Afficher le dernier score après le rerunning
+    # Afficher la jauge du dernier score (si existant)
     if st.session_state.dernier_score:
         mot, score = st.session_state.dernier_score
-        st.markdown(f"**👉 Score pour '{mot}' : ** `{score}/1000`")
-        st.session_state.dernier_score = None # Vider pour la prochaine soumission
+        
+        st.subheader(f"✨ Similarité pour **'{mot}'**")
+        # AFFICHAGE VISUEL DE LA JAUGE ET DU POURCENTAGE
+        afficher_jauge_coloree(score)
         
 else:
     st.success(f"🎉 FÉLICITATIONS ! Le mot mystère était **{MOT_MYSTERE_FIXE}** ! Vous avez trouvé en {len(st.session_state.historique_propositions)} tentatives.")
@@ -92,10 +121,8 @@ else:
 if not st.session_state.trouve:
     st.header("1️⃣ Faites une Proposition")
     
-    # L'état initial du champ de saisie est lu à partir de st.session_state.input_prop
     proposition_utilisateur = st.text_input("Proposez un mot :", key="input_prop", value=st.session_state.get('input_prop', '')).strip().upper()
     
-    # Le bouton appelle la fonction de rappel 'gerer_proposition_soumise'
     st.button(
         "Soumettre",
         on_click=gerer_proposition_soumise,
@@ -111,10 +138,9 @@ if not st.session_state.trouve:
     if st.session_state.historique_propositions:
         st.header("Historique et Meilleurs Scores")
         
-        # Tri de l'historique par score
         historique_trie = sorted(st.session_state.historique_propositions, key=lambda x: x[1], reverse=True)
         
-        # Affichage sous forme de tableau
+        # Le tableau affiche toujours le score /1000 pour la précision des résultats
         data = [{"Mot": mot, "Score": score} for mot, score in historique_trie]
         st.dataframe(data, use_container_width=True, hide_index=True)
 
@@ -125,7 +151,7 @@ if st.session_state.trouve:
         st.session_state.historique_propositions = []
         st.session_state.trouve = False
         st.session_state.dernier_score = None
-        st.session_state.input_prop = "" # Réinitialisation du champ de saisie
+        st.session_state.input_prop = "" 
 
     if st.button("Recommencer une nouvelle partie", on_click=reinitialiser_jeu):
         st.rerun()
