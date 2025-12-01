@@ -85,7 +85,7 @@ def afficher_jauge_coloree(score):
     
 # --- Initialisation de l'application Streamlit ---
 
-st.title("🏹 La Chasse au Mot Secret : AMOUREUX")
+st.title("🏹 La Chasse au Mot Secret")
 st.markdown("Trouvez le mot mystère en proposant des mots qui s'en approchent sémantiquement.")
 
 # Initialisation des variables de session
